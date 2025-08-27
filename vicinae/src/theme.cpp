@@ -30,11 +30,11 @@ QColor ThemeInfo::resolveTint(SemanticColor tint) const {
   case SemanticColor::Cyan:
     return colors.cyan;
 
-  // Text colors
+    // Text colors
   case SemanticColor::TextPrimary:
-    return colors.text;
+    return colors.textPrimary.isValid() ? colors.textPrimary : colors.text;
   case SemanticColor::TextSecondary:
-    return colors.subtext;
+    return colors.textSecondary.isValid() ? colors.textSecondary : colors.subtext;
   case SemanticColor::TextTertiary:
     return colors.textTertiary;
   case SemanticColor::TextDisabled:
@@ -42,11 +42,11 @@ QColor ThemeInfo::resolveTint(SemanticColor tint) const {
   case SemanticColor::TextOnAccent:
     return colors.textOnAccent;
   case SemanticColor::TextError:
-    return colors.red;
+    return colors.textError;
   case SemanticColor::TextSuccess:
-    return colors.green;
+    return colors.textSuccess;
   case SemanticColor::TextWarning:
-    return colors.orange;
+    return colors.textWarning;
 
   // Backgrounds
   case SemanticColor::MainBackground:
@@ -188,176 +188,334 @@ ThemeInfo ThemeInfo::fromParsed(const ParsedThemeData &scheme) {
   info.colors.red = scheme.palette.red;
   info.colors.yellow = scheme.palette.yellow;
   info.colors.cyan = scheme.palette.cyan;
-  info.colors.mainBackground = scheme.palette.background;
+
+  // Assign all palette colors to ThemeInfo colors
+  if (scheme.palette.textPrimary.isValid()) info.colors.text = scheme.palette.textPrimary;
+  if (scheme.palette.textSecondary.isValid()) info.colors.subtext = scheme.palette.textSecondary;
+  if (scheme.palette.textTertiary.isValid()) info.colors.textTertiary = scheme.palette.textTertiary;
+  if (scheme.palette.textDisabled.isValid()) info.colors.textDisabled = scheme.palette.textDisabled;
+  if (scheme.palette.textOnAccent.isValid()) info.colors.textOnAccent = scheme.palette.textOnAccent;
+  if (scheme.palette.textError.isValid()) info.colors.textError = scheme.palette.textError;
+  if (scheme.palette.textSuccess.isValid()) info.colors.textSuccess = scheme.palette.textSuccess;
+  if (scheme.palette.textWarning.isValid()) info.colors.textWarning = scheme.palette.textWarning;
+
+  if (scheme.palette.mainBackground.isValid()) info.colors.mainBackground = scheme.palette.mainBackground;
+  if (scheme.palette.mainHoverBackground.isValid())
+    info.colors.mainHoveredBackground = scheme.palette.mainHoverBackground;
+  if (scheme.palette.mainSelectedBackground.isValid())
+    info.colors.mainSelectedBackground = scheme.palette.mainSelectedBackground;
+  if (scheme.palette.secondaryBackground.isValid())
+    info.colors.secondaryBackground = scheme.palette.secondaryBackground;
+  if (scheme.palette.tertiaryBackground.isValid())
+    info.colors.tertiaryBackground = scheme.palette.tertiaryBackground;
+
+  if (scheme.palette.buttonPrimary.isValid()) info.colors.buttonPrimary = scheme.palette.buttonPrimary;
+  if (scheme.palette.buttonPrimaryHover.isValid())
+    info.colors.buttonPrimaryHover = scheme.palette.buttonPrimaryHover;
+  if (scheme.palette.buttonPrimaryPressed.isValid())
+    info.colors.buttonPrimaryPressed = scheme.palette.buttonPrimaryPressed;
+  if (scheme.palette.buttonPrimaryDisabled.isValid())
+    info.colors.buttonPrimaryDisabled = scheme.palette.buttonPrimaryDisabled;
+
+  if (scheme.palette.buttonSecondary.isValid()) info.colors.buttonSecondary = scheme.palette.buttonSecondary;
+  if (scheme.palette.buttonSecondaryHover.isValid())
+    info.colors.buttonSecondaryHover = scheme.palette.buttonSecondaryHover;
+  if (scheme.palette.buttonSecondaryPressed.isValid())
+    info.colors.buttonSecondaryPressed = scheme.palette.buttonSecondaryPressed;
+  if (scheme.palette.buttonSecondaryDisabled.isValid())
+    info.colors.buttonSecondaryDisabled = scheme.palette.buttonSecondaryDisabled;
+
+  if (scheme.palette.buttonDestructive.isValid())
+    info.colors.buttonDestructive = scheme.palette.buttonDestructive;
+  if (scheme.palette.buttonDestructiveHover.isValid())
+    info.colors.buttonDestructiveHover = scheme.palette.buttonDestructiveHover;
+  if (scheme.palette.buttonDestructivePressed.isValid())
+    info.colors.buttonDestructivePressed = scheme.palette.buttonDestructivePressed;
+
+  if (scheme.palette.inputBackground.isValid()) info.colors.inputBackground = scheme.palette.inputBackground;
+  if (scheme.palette.inputBorder.isValid()) info.colors.inputBorder = scheme.palette.inputBorder;
+  if (scheme.palette.inputBorderFocus.isValid())
+    info.colors.inputBorderFocus = scheme.palette.inputBorderFocus;
+  if (scheme.palette.inputBorderError.isValid())
+    info.colors.inputBorderError = scheme.palette.inputBorderError;
+  if (scheme.palette.inputPlaceholder.isValid())
+    info.colors.inputPlaceholder = scheme.palette.inputPlaceholder;
+
+  if (scheme.palette.border.isValid()) info.colors.border = scheme.palette.border;
+  if (scheme.palette.borderSubtle.isValid()) info.colors.borderSubtle = scheme.palette.borderSubtle;
+  if (scheme.palette.borderStrong.isValid()) info.colors.borderStrong = scheme.palette.borderStrong;
+  if (scheme.palette.separator.isValid()) info.colors.separator = scheme.palette.separator;
+  if (scheme.palette.shadow.isValid()) info.colors.shadow = scheme.palette.shadow;
+
+  if (scheme.palette.statusBackground.isValid())
+    info.colors.statusBackground = scheme.palette.statusBackground;
+  if (scheme.palette.statusBorder.isValid()) info.colors.statusBackgroundBorder = scheme.palette.statusBorder;
+  if (scheme.palette.statusHover.isValid()) info.colors.statusBackgroundHover = scheme.palette.statusHover;
+
+  if (scheme.palette.errorBackground.isValid()) info.colors.errorBackground = scheme.palette.errorBackground;
+  if (scheme.palette.errorBorder.isValid()) info.colors.errorBorder = scheme.palette.errorBorder;
+  if (scheme.palette.successBackground.isValid())
+    info.colors.successBackground = scheme.palette.successBackground;
+  if (scheme.palette.successBorder.isValid()) info.colors.successBorder = scheme.palette.successBorder;
+  if (scheme.palette.warningBackground.isValid())
+    info.colors.warningBackground = scheme.palette.warningBackground;
+  if (scheme.palette.warningBorder.isValid()) info.colors.warningBorder = scheme.palette.warningBorder;
+
+  if (scheme.palette.linkDefault.isValid()) info.colors.linkDefault = scheme.palette.linkDefault;
+  if (scheme.palette.linkHover.isValid()) info.colors.linkHover = scheme.palette.linkHover;
+  if (scheme.palette.linkVisited.isValid()) info.colors.linkVisited = scheme.palette.linkVisited;
+
+  if (scheme.palette.focus.isValid()) info.colors.focus = scheme.palette.focus;
+  if (scheme.palette.overlay.isValid()) info.colors.overlay = scheme.palette.overlay;
+  if (scheme.palette.tooltip.isValid()) info.colors.tooltip = scheme.palette.tooltip;
+  if (scheme.palette.tooltipText.isValid()) info.colors.tooltipText = scheme.palette.tooltipText;
+
+  // Set mainBackground from palette if not already set
+  if (!info.colors.mainBackground.isValid()) { info.colors.mainBackground = scheme.palette.background; }
 
   if (scheme.appearance == "dark") {
-    // EXISTING COLORS (your current code)
-    info.colors.mainBackground = scheme.palette.background;
-    info.colors.border = adjustColorHSL(info.colors.mainBackground, 0, 0.5f, 1.8f);
-    info.colors.mainSelectedBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.1f, 1.4f);
-    info.colors.mainHoveredBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.0f, 1.3f);
-    info.colors.statusBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 1.3f);
-    info.colors.statusBackgroundLighter = adjustColorHSL(info.colors.statusBackground, 0, 0.9f, 1.2f);
-    info.colors.statusBackgroundHover = adjustColorHSL(info.colors.statusBackground, 0, 1.0f, 1.1f);
-    info.colors.statusBackgroundBorder = adjustColorHSL(info.colors.statusBackground, 0, 0.6f, 1.5f);
-    info.colors.text = scheme.palette.foreground;
-    info.colors.subtext = adjustColorHSL(scheme.palette.foreground, 0, 0.8f, 0.7f);
+    // EXISTING COLORS (your current code) - only set if not provided in palette
+    if (!info.colors.mainBackground.isValid()) info.colors.mainBackground = scheme.palette.background;
+    if (!info.colors.border.isValid())
+      info.colors.border = adjustColorHSL(info.colors.mainBackground, 0, 0.5f, 1.8f);
+    if (!info.colors.mainSelectedBackground.isValid())
+      info.colors.mainSelectedBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.1f, 1.4f);
+    if (!info.colors.mainHoveredBackground.isValid())
+      info.colors.mainHoveredBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.0f, 1.3f);
+    if (!info.colors.statusBackground.isValid())
+      info.colors.statusBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 1.3f);
+    if (!info.colors.statusBackgroundLighter.isValid())
+      info.colors.statusBackgroundLighter = adjustColorHSL(info.colors.statusBackground, 0, 0.9f, 1.2f);
+    if (!info.colors.statusBackgroundHover.isValid())
+      info.colors.statusBackgroundHover = adjustColorHSL(info.colors.statusBackground, 0, 1.0f, 1.1f);
+    if (!info.colors.statusBackgroundBorder.isValid())
+      info.colors.statusBackgroundBorder = adjustColorHSL(info.colors.statusBackground, 0, 0.6f, 0.6f);
+    if (!info.colors.text.isValid()) info.colors.text = scheme.palette.foreground;
+    if (!info.colors.subtext.isValid())
+      info.colors.subtext = adjustColorHSL(scheme.palette.foreground, 0, 0.8f, 0.7f);
 
-    // NEW TEXT COLORS
-    info.colors.textTertiary = adjustColorHSL(scheme.palette.foreground, 0, 0.6f, 0.5f);
-    // ^ Much dimmer for least important text
-    info.colors.textDisabled = adjustColorHSL(scheme.palette.foreground, 0, 0.3f, 0.4f);
-    // ^ Very desaturated and dim for disabled states
-    info.colors.textOnAccent = QColor("#FFFFFF");
-    // ^ Always white text on colored buttons in dark theme
+    // NEW TEXT COLORS - only generate if not provided
+    if (!info.colors.textTertiary.isValid())
+      info.colors.textTertiary = adjustColorHSL(scheme.palette.foreground, 0, 0.6f, 0.5f);
+    if (!info.colors.textDisabled.isValid())
+      info.colors.textDisabled = adjustColorHSL(scheme.palette.foreground, 0, 0.3f, 0.4f);
+    if (!info.colors.textOnAccent.isValid()) info.colors.textOnAccent = QColor("#FFFFFF");
 
-    // NEW BACKGROUND LEVELS
-    info.colors.secondaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.9f, 1.2f);
-    // ^ Cards, panels - slightly elevated
-    info.colors.tertiaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 0.8f);
-    // ^ Inset areas, wells - slightly darker
+    // NEW BACKGROUND LEVELS - only generate if not provided
+    if (!info.colors.secondaryBackground.isValid())
+      info.colors.secondaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.9f, 1.2f);
+    if (!info.colors.tertiaryBackground.isValid())
+      info.colors.tertiaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 0.8f);
 
-    // PRIMARY BUTTONS (using blue as primary)
-    info.colors.buttonPrimary = scheme.palette.blue;
-    info.colors.buttonPrimaryHover = adjustColorHSL(scheme.palette.blue, 0, 1.1f, 1.2f);
-    // ^ Slightly more saturated and lighter
-    info.colors.buttonPrimaryPressed = adjustColorHSL(scheme.palette.blue, 0, 1.2f, 0.8f);
-    // ^ More saturated but darker for pressed state
-    info.colors.buttonPrimaryDisabled = adjustColorHSL(scheme.palette.blue, 0, 0.3f, 0.6f);
-    // ^ Very desaturated and dim
+    // PRIMARY BUTTONS - only generate if not provided
+    if (!info.colors.buttonPrimary.isValid()) info.colors.buttonPrimary = scheme.palette.blue;
+    if (!info.colors.buttonPrimaryHover.isValid())
+      info.colors.buttonPrimaryHover = adjustColorHSL(scheme.palette.blue, 0, 1.1f, 1.2f);
+    if (!info.colors.buttonPrimaryPressed.isValid())
+      info.colors.buttonPrimaryPressed = adjustColorHSL(scheme.palette.blue, 0, 1.2f, 0.8f);
+    if (!info.colors.buttonPrimaryDisabled.isValid())
+      info.colors.buttonPrimaryDisabled = adjustColorHSL(scheme.palette.blue, 0, 0.3f, 0.6f);
 
-    // SECONDARY BUTTONS (neutral colored)
-    info.colors.buttonSecondary = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 1.6f);
-    info.colors.buttonSecondaryHover = adjustColorHSL(info.colors.buttonSecondary, 0, 1.0f, 1.2f);
-    info.colors.buttonSecondaryPressed = adjustColorHSL(info.colors.buttonSecondary, 0, 1.1f, 0.9f);
-    info.colors.buttonSecondaryDisabled = adjustColorHSL(info.colors.buttonSecondary, 0, 0.5f, 0.7f);
+    // SECONDARY BUTTONS - only generate if not provided
+    if (!info.colors.buttonSecondary.isValid())
+      info.colors.buttonSecondary = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 1.6f);
+    if (!info.colors.buttonSecondaryHover.isValid())
+      info.colors.buttonSecondaryHover = adjustColorHSL(info.colors.buttonSecondary, 0, 1.0f, 1.2f);
+    if (!info.colors.buttonSecondaryPressed.isValid())
+      info.colors.buttonSecondaryPressed = adjustColorHSL(info.colors.buttonSecondary, 0, 1.1f, 0.9f);
+    if (!info.colors.buttonSecondaryDisabled.isValid())
+      info.colors.buttonSecondaryDisabled = adjustColorHSL(info.colors.buttonSecondary, 0, 0.5f, 0.7f);
 
-    // DESTRUCTIVE BUTTONS (using red)
-    info.colors.buttonDestructive = scheme.palette.red;
-    info.colors.buttonDestructiveHover = adjustColorHSL(scheme.palette.red, 0, 1.1f, 1.2f);
-    info.colors.buttonDestructivePressed = adjustColorHSL(scheme.palette.red, 0, 1.2f, 0.8f);
+    // DESTRUCTIVE BUTTONS - only generate if not provided
+    if (!info.colors.buttonDestructive.isValid()) info.colors.buttonDestructive = scheme.palette.red;
+    if (!info.colors.buttonDestructiveHover.isValid())
+      info.colors.buttonDestructiveHover = adjustColorHSL(scheme.palette.red, 0, 1.1f, 1.2f);
+    if (!info.colors.buttonDestructivePressed.isValid())
+      info.colors.buttonDestructivePressed = adjustColorHSL(scheme.palette.red, 0, 1.2f, 0.8f);
 
-    // INPUT STATES
-    info.colors.inputBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.7f, 1.1f);
-    // ^ Slightly lighter than main background
-    info.colors.inputBorder = adjustColorHSL(info.colors.mainBackground, 0, 0.6f, 1.5f);
-    info.colors.inputBorderFocus = scheme.palette.blue;
-    // ^ Use primary color for focus
-    info.colors.inputBorderError = scheme.palette.red;
-    info.colors.inputPlaceholder = adjustColorHSL(scheme.palette.foreground, 0, 0.5f, 0.6f);
+    // INPUT STATES - only generate if not provided
+    if (!info.colors.inputBackground.isValid())
+      info.colors.inputBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.7f, 1.1f);
+    if (!info.colors.inputBorder.isValid())
+      info.colors.inputBorder = adjustColorHSL(info.colors.mainBackground, 0, 0.6f, 1.5f);
+    if (!info.colors.inputBorderFocus.isValid()) info.colors.inputBorderFocus = scheme.palette.blue;
+    if (!info.colors.inputBorderError.isValid()) info.colors.inputBorderError = scheme.palette.red;
+    if (!info.colors.inputPlaceholder.isValid())
+      info.colors.inputPlaceholder = adjustColorHSL(scheme.palette.foreground, 0, 0.5f, 0.6f);
 
-    // BORDER VARIATIONS
-    info.colors.borderSubtle = adjustColorHSL(info.colors.border, 0, 0.7f, 0.8f);
-    // ^ Even more subtle than regular border
-    info.colors.borderStrong = adjustColorHSL(info.colors.border, 0, 1.3f, 1.3f);
-    // ^ More prominent border
-    info.colors.separator = adjustColorHSL(info.colors.border, 0, 0.5f, 1.0f);
-    info.colors.shadow = QColor(0, 0, 0, 80);
-    // ^ Semi-transparent black for shadows
+    // BORDER VARIATIONS - only generate if not provided
+    if (!info.colors.borderSubtle.isValid())
+      info.colors.borderSubtle = adjustColorHSL(info.colors.border, 0, 0.7f, 0.8f);
+    if (!info.colors.borderStrong.isValid())
+      info.colors.borderStrong = adjustColorHSL(info.colors.border, 0, 1.3f, 1.3f);
+    if (!info.colors.separator.isValid())
+      info.colors.separator = adjustColorHSL(info.colors.border, 0, 0.5f, 1.0f);
+    if (!info.colors.shadow.isValid()) info.colors.shadow = QColor(0, 0, 0, 80);
 
-    // STATUS BACKGROUNDS (using semantic colors with low opacity effect)
-    info.colors.errorBackground = adjustColorHSL(scheme.palette.red, 0, 0.6f, 1.8f);
-    info.colors.errorBorder = adjustColorHSL(scheme.palette.red, 0, 0.8f, 1.4f);
-    info.colors.successBackground = adjustColorHSL(scheme.palette.green, 0, 0.6f, 1.8f);
-    info.colors.successBorder = adjustColorHSL(scheme.palette.green, 0, 0.8f, 1.4f);
-    info.colors.warningBackground = adjustColorHSL(scheme.palette.orange, 0, 0.6f, 1.8f);
-    info.colors.warningBorder = adjustColorHSL(scheme.palette.orange, 0, 0.8f, 1.4f);
+    // STATUS BACKGROUNDS - only generate if not provided
+    if (!info.colors.errorBackground.isValid())
+      info.colors.errorBackground = adjustColorHSL(scheme.palette.red, 0, 0.6f, 1.8f);
+    if (!info.colors.errorBorder.isValid())
+      info.colors.errorBorder = adjustColorHSL(scheme.palette.red, 0, 0.8f, 1.4f);
+    if (!info.colors.successBackground.isValid())
+      info.colors.successBackground = adjustColorHSL(scheme.palette.green, 0, 0.6f, 1.8f);
+    if (!info.colors.successBorder.isValid())
+      info.colors.successBorder = adjustColorHSL(scheme.palette.green, 0, 0.8f, 1.4f);
+    if (!info.colors.warningBackground.isValid())
+      info.colors.warningBackground = adjustColorHSL(scheme.palette.orange, 0, 0.6f, 1.8f);
+    if (!info.colors.warningBorder.isValid())
+      info.colors.warningBorder = adjustColorHSL(scheme.palette.orange, 0, 0.8f, 1.4f);
 
-    // LINKS
-    info.colors.linkDefault = adjustColorHSL(scheme.palette.blue, 0, 1.0f, 1.3f);
-    // ^ Slightly lighter blue for better readability
-    info.colors.linkHover = adjustColorHSL(scheme.palette.blue, 0, 1.2f, 1.5f);
-    info.colors.linkVisited = adjustColorHSL(scheme.palette.purple, 0, 1.0f, 1.2f);
+    // LINKS - only generate if not provided
+    if (!info.colors.linkDefault.isValid())
+      info.colors.linkDefault = adjustColorHSL(scheme.palette.blue, 0, 1.0f, 1.3f);
+    if (!info.colors.linkHover.isValid())
+      info.colors.linkHover = adjustColorHSL(scheme.palette.blue, 0, 1.2f, 1.5f);
+    if (!info.colors.linkVisited.isValid())
+      info.colors.linkVisited = adjustColorHSL(scheme.palette.purple, 0, 1.0f, 1.2f);
 
-    // SPECIAL ELEMENTS
-    info.colors.focus = scheme.palette.blue;
-    // ^ Use primary color for focus rings
-    info.colors.overlay = QColor(0, 0, 0, 120);
-    // ^ Semi-transparent black for modal overlays
-    info.colors.tooltip = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 2.0f);
-    info.colors.tooltipText = scheme.palette.foreground;
+    // SPECIAL ELEMENTS - only generate if not provided
+    if (!info.colors.focus.isValid()) info.colors.focus = scheme.palette.blue;
+    if (!info.colors.overlay.isValid()) info.colors.overlay = QColor(0, 0, 0, 120);
+    if (!info.colors.tooltip.isValid())
+      info.colors.tooltip = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 2.0f);
+    if (!info.colors.tooltipText.isValid()) info.colors.tooltipText = scheme.palette.foreground;
+    // SEMANTIC TEXT COLORS - only generate if not provided
+    if (!info.colors.textSuccess.isValid()) {
+      info.colors.textSuccess = adjustColorHSL(scheme.palette.green, 0, 1.1f, 1.2f);
+      // ^ Slightly brighter and more saturated green for success text
+    }
+    if (!info.colors.textWarning.isValid()) {
+      info.colors.textWarning = adjustColorHSL(scheme.palette.orange, 0, 1.1f, 1.2f);
+      // ^ Slightly brighter and more saturated orange for warning text
+    }
 
   } else {
     // LIGHT THEME - Similar logic but inverted lightness relationships
 
-    // EXISTING COLORS (your current code)
-    info.colors.mainBackground = scheme.palette.background;
-    info.colors.border = adjustColorHSL(info.colors.mainBackground, 0, 0.6f, 0.75f);
-    info.colors.mainSelectedBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.2f, 0.9f);
-    info.colors.mainHoveredBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.1f, 0.95f);
-    info.colors.statusBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.9f, 0.92f);
-    info.colors.statusBackgroundLighter = adjustColorHSL(info.colors.statusBackground, 0, 0.8f, 0.96f);
-    info.colors.statusBackgroundHover = adjustColorHSL(info.colors.statusBackground, 0, 1.1f, 0.88f);
-    info.colors.statusBackgroundBorder = adjustColorHSL(info.colors.statusBackground, 0, 0.7f, 0.8f);
-    info.colors.text = scheme.palette.foreground;
-    info.colors.subtext = adjustColorHSL(scheme.palette.foreground, 0, 0.7f, 1.4f);
+    // EXISTING COLORS (your current code) - only set if not provided in palette
+    if (!info.colors.mainBackground.isValid()) info.colors.mainBackground = scheme.palette.background;
+    if (!info.colors.border.isValid())
+      info.colors.border = adjustColorHSL(info.colors.mainBackground, 0, 0.6f, 0.75f);
+    if (!info.colors.mainSelectedBackground.isValid())
+      info.colors.mainSelectedBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.2f, 0.9f);
+    if (!info.colors.mainHoveredBackground.isValid())
+      info.colors.mainHoveredBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.1f, 0.95f);
+    if (!info.colors.statusBackground.isValid())
+      info.colors.statusBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.9f, 0.92f);
+    if (!info.colors.statusBackgroundLighter.isValid())
+      info.colors.statusBackgroundLighter = adjustColorHSL(info.colors.statusBackground, 0, 0.8f, 0.96f);
+    if (!info.colors.statusBackgroundHover.isValid())
+      info.colors.statusBackgroundHover = adjustColorHSL(info.colors.statusBackground, 0, 1.1f, 0.88f);
+    if (!info.colors.statusBackgroundBorder.isValid())
+      info.colors.statusBackgroundBorder = adjustColorHSL(info.colors.statusBackground, 0, 0.7f, 0.8f);
+    if (!info.colors.text.isValid()) info.colors.text = scheme.palette.foreground;
+    if (!info.colors.subtext.isValid())
+      info.colors.subtext = adjustColorHSL(scheme.palette.foreground, 0, 0.7f, 1.4f);
 
-    // NEW TEXT COLORS
-    info.colors.textTertiary = adjustColorHSL(scheme.palette.foreground, 0, 0.6f, 1.6f);
-    info.colors.textDisabled = adjustColorHSL(scheme.palette.foreground, 0, 0.4f, 1.8f);
-    info.colors.textOnAccent = QColor("#FFFFFF");
-    // ^ White text works on most colored buttons in light theme too
+    // NEW TEXT COLORS - only generate if not provided
+    if (!info.colors.textTertiary.isValid())
+      info.colors.textTertiary = adjustColorHSL(scheme.palette.foreground, 0, 0.6f, 1.6f);
+    if (!info.colors.textDisabled.isValid())
+      info.colors.textDisabled = adjustColorHSL(scheme.palette.foreground, 0, 0.4f, 1.8f);
+    if (!info.colors.textOnAccent.isValid()) info.colors.textOnAccent = QColor("#FFFFFF");
 
-    // NEW BACKGROUND LEVELS
-    info.colors.secondaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 0.95f);
-    // ^ Cards, panels - slightly darker
-    info.colors.tertiaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.9f, 1.05f);
-    // ^ Inset areas - slightly lighter
+    // NEW BACKGROUND LEVELS - only generate if not provided
+    if (!info.colors.secondaryBackground.isValid())
+      info.colors.secondaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 0.95f);
+    if (!info.colors.tertiaryBackground.isValid())
+      info.colors.tertiaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.9f, 1.05f);
 
-    // PRIMARY BUTTONS
-    info.colors.buttonPrimary = scheme.palette.blue;
-    info.colors.buttonPrimaryHover = adjustColorHSL(scheme.palette.blue, 0, 1.1f, 0.9f);
-    // ^ More saturated and darker
-    info.colors.buttonPrimaryPressed = adjustColorHSL(scheme.palette.blue, 0, 1.2f, 0.8f);
-    info.colors.buttonPrimaryDisabled = adjustColorHSL(scheme.palette.blue, 0, 0.3f, 1.5f);
+    // PRIMARY BUTTONS - only generate if not provided
+    if (!info.colors.buttonPrimary.isValid()) info.colors.buttonPrimary = scheme.palette.blue;
+    if (!info.colors.buttonPrimaryHover.isValid())
+      info.colors.buttonPrimaryHover = adjustColorHSL(scheme.palette.blue, 0, 1.1f, 0.9f);
+    if (!info.colors.buttonPrimaryPressed.isValid())
+      info.colors.buttonPrimaryPressed = adjustColorHSL(scheme.palette.blue, 0, 1.2f, 0.8f);
+    if (!info.colors.buttonPrimaryDisabled.isValid())
+      info.colors.buttonPrimaryDisabled = adjustColorHSL(scheme.palette.blue, 0, 0.3f, 1.5f);
 
-    // SECONDARY BUTTONS
-    info.colors.buttonSecondary = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 0.85f);
-    info.colors.buttonSecondaryHover = adjustColorHSL(info.colors.buttonSecondary, 0, 1.0f, 0.8f);
-    info.colors.buttonSecondaryPressed = adjustColorHSL(info.colors.buttonSecondary, 0, 1.1f, 0.75f);
-    info.colors.buttonSecondaryDisabled = adjustColorHSL(info.colors.buttonSecondary, 0, 0.5f, 1.2f);
+    // SECONDARY BUTTONS - only generate if not provided
+    if (!info.colors.buttonSecondary.isValid())
+      info.colors.buttonSecondary = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 0.85f);
+    if (!info.colors.buttonSecondaryHover.isValid())
+      info.colors.buttonSecondaryHover = adjustColorHSL(info.colors.buttonSecondary, 0, 1.0f, 0.8f);
+    if (!info.colors.buttonSecondaryPressed.isValid())
+      info.colors.buttonSecondaryPressed = adjustColorHSL(info.colors.buttonSecondary, 0, 1.1f, 0.75f);
+    if (!info.colors.buttonSecondaryDisabled.isValid())
+      info.colors.buttonSecondaryDisabled = adjustColorHSL(info.colors.buttonSecondary, 0, 0.5f, 1.2f);
 
-    // DESTRUCTIVE BUTTONS
-    info.colors.buttonDestructive = scheme.palette.red;
-    info.colors.buttonDestructiveHover = adjustColorHSL(scheme.palette.red, 0, 1.1f, 0.9f);
-    info.colors.buttonDestructivePressed = adjustColorHSL(scheme.palette.red, 0, 1.2f, 0.8f);
+    // DESTRUCTIVE BUTTONS - only generate if not provided
+    if (!info.colors.buttonDestructive.isValid()) info.colors.buttonDestructive = scheme.palette.red;
+    if (!info.colors.buttonDestructiveHover.isValid())
+      info.colors.buttonDestructiveHover = adjustColorHSL(scheme.palette.red, 0, 1.1f, 0.9f);
+    if (!info.colors.buttonDestructivePressed.isValid())
+      info.colors.buttonDestructivePressed = adjustColorHSL(scheme.palette.red, 0, 1.2f, 0.8f);
 
-    // INPUT STATES
-    info.colors.inputBackground = QColor("#FFFFFF");
-    // ^ Pure white for inputs in light theme
-    info.colors.inputBorder = adjustColorHSL(info.colors.mainBackground, 0, 0.5f, 0.7f);
-    info.colors.inputBorderFocus = scheme.palette.blue;
-    info.colors.inputBorderError = scheme.palette.red;
-    info.colors.inputPlaceholder = adjustColorHSL(scheme.palette.foreground, 0, 0.5f, 1.5f);
+    // INPUT STATES - only generate if not provided
+    if (!info.colors.inputBackground.isValid()) info.colors.inputBackground = QColor("#FFFFFF");
+    if (!info.colors.inputBorder.isValid())
+      info.colors.inputBorder = adjustColorHSL(info.colors.mainBackground, 0, 0.5f, 0.7f);
+    if (!info.colors.inputBorderFocus.isValid()) info.colors.inputBorderFocus = scheme.palette.blue;
+    if (!info.colors.inputBorderError.isValid()) info.colors.inputBorderError = scheme.palette.red;
+    if (!info.colors.inputPlaceholder.isValid())
+      info.colors.inputPlaceholder = adjustColorHSL(scheme.palette.foreground, 0, 0.5f, 1.5f);
 
-    // BORDER VARIATIONS
-    info.colors.borderSubtle = adjustColorHSL(info.colors.border, 0, 0.7f, 1.2f);
-    info.colors.borderStrong = adjustColorHSL(info.colors.border, 0, 1.2f, 0.6f);
-    info.colors.separator = adjustColorHSL(info.colors.border, 0, 0.6f, 1.0f);
-    info.colors.shadow = QColor(0, 0, 0, 40);
-    // ^ Lighter shadow for light theme
+    // BORDER VARIATIONS - only generate if not provided
+    if (!info.colors.borderSubtle.isValid())
+      info.colors.borderSubtle = adjustColorHSL(info.colors.border, 0, 0.7f, 1.2f);
+    if (!info.colors.borderStrong.isValid())
+      info.colors.borderStrong = adjustColorHSL(info.colors.border, 0, 1.2f, 0.6f);
+    if (!info.colors.separator.isValid())
+      info.colors.separator = adjustColorHSL(info.colors.border, 0, 0.6f, 1.0f);
+    if (!info.colors.shadow.isValid()) info.colors.shadow = QColor(0, 0, 0, 40);
 
-    // STATUS BACKGROUNDS
-    info.colors.errorBackground = adjustColorHSL(scheme.palette.red, 0, 0.3f, 1.8f);
-    info.colors.errorBorder = adjustColorHSL(scheme.palette.red, 0, 0.7f, 1.2f);
-    info.colors.successBackground = adjustColorHSL(scheme.palette.green, 0, 0.3f, 1.8f);
-    info.colors.successBorder = adjustColorHSL(scheme.palette.green, 0, 0.7f, 1.2f);
-    info.colors.warningBackground = adjustColorHSL(scheme.palette.orange, 0, 0.3f, 1.8f);
-    info.colors.warningBorder = adjustColorHSL(scheme.palette.orange, 0, 0.7f, 1.2f);
+    // STATUS BACKGROUNDS - only generate if not provided
+    if (!info.colors.errorBackground.isValid())
+      info.colors.errorBackground = adjustColorHSL(scheme.palette.red, 0, 0.3f, 1.8f);
+    if (!info.colors.errorBorder.isValid())
+      info.colors.errorBorder = adjustColorHSL(scheme.palette.red, 0, 0.7f, 1.2f);
+    if (!info.colors.successBackground.isValid())
+      info.colors.successBackground = adjustColorHSL(scheme.palette.green, 0, 0.3f, 1.8f);
+    if (!info.colors.successBorder.isValid())
+      info.colors.successBorder = adjustColorHSL(scheme.palette.green, 0, 0.7f, 1.2f);
+    if (!info.colors.warningBackground.isValid())
+      info.colors.warningBackground = adjustColorHSL(scheme.palette.orange, 0, 0.3f, 1.8f);
+    if (!info.colors.warningBorder.isValid())
+      info.colors.warningBorder = adjustColorHSL(scheme.palette.orange, 0, 0.7f, 1.2f);
 
-    // LINKS
-    info.colors.linkDefault = adjustColorHSL(scheme.palette.blue, 0, 1.1f, 0.8f);
-    info.colors.linkHover = adjustColorHSL(scheme.palette.blue, 0, 1.3f, 0.7f);
-    info.colors.linkVisited = adjustColorHSL(scheme.palette.purple, 0, 1.1f, 0.8f);
+    // LINKS - only generate if not provided
+    if (!info.colors.linkDefault.isValid())
+      info.colors.linkDefault = adjustColorHSL(scheme.palette.blue, 0, 1.1f, 0.8f);
+    if (!info.colors.linkHover.isValid())
+      info.colors.linkHover = adjustColorHSL(scheme.palette.blue, 0, 1.3f, 0.7f);
+    if (!info.colors.linkVisited.isValid())
+      info.colors.linkVisited = adjustColorHSL(scheme.palette.purple, 0, 1.1f, 0.8f);
 
-    // SPECIAL ELEMENTS
-    info.colors.focus = scheme.palette.blue;
-    info.colors.overlay = QColor(0, 0, 0, 80);
-    // ^ Slightly lighter overlay for light theme
-    info.colors.tooltip = adjustColorHSL(info.colors.mainBackground, 0, 0.7f, 0.2f);
-    // ^ Much darker tooltip in light theme
-    info.colors.tooltipText = QColor("#FFFFFF");
-    // ^ White text on dark tooltip
+    // SPECIAL ELEMENTS - only generate if not provided
+    if (!info.colors.focus.isValid()) info.colors.focus = scheme.palette.blue;
+    if (!info.colors.overlay.isValid()) info.colors.overlay = QColor(0, 0, 0, 80);
+    if (!info.colors.tooltip.isValid())
+      info.colors.tooltip = adjustColorHSL(info.colors.mainBackground, 0, 0.7f, 0.2f);
+    if (!info.colors.tooltipText.isValid()) info.colors.tooltipText = QColor("#FFFFFF");
+
+    // SEMANTIC TEXT COLORS - only generate if not provided
+    if (!info.colors.textSuccess.isValid()) {
+      info.colors.textSuccess = adjustColorHSL(scheme.palette.green, 0, 1.1f, 0.8f);
+      // ^ Slightly darker and more saturated green for success text in light theme
+    }
+    if (!info.colors.textWarning.isValid()) {
+      info.colors.textWarning = adjustColorHSL(scheme.palette.orange, 0, 1.1f, 0.8f);
+      // ^ Slightly darker and more saturated orange for warning text in light theme
+    }
+    if (info.colors.textSuccess.isValid()) {
+      info.colors.textSuccess = adjustColorHSL(scheme.palette.green, 0, 1.1f, 0.8f);
+      // ^ Slightly darker and more saturated green for success text in light theme
+    }
+    if (info.colors.textWarning.isValid()) {
+      info.colors.textWarning = adjustColorHSL(scheme.palette.orange, 0, 1.1f, 0.8f);
+      // ^ Slightly darker and more saturated orange for warning text in light theme
+    }
   }
 
   return info;
@@ -562,6 +720,75 @@ void ThemeService::scanThemeDirectory(const std::filesystem::path &path) {
       theme.palette.red = colors.value("red").toString();
       theme.palette.yellow = colors.value("yellow").toString();
       theme.palette.cyan = colors.value("cyan").toString();
+
+      // Text colors
+      theme.palette.textPrimary = colors.value("textPrimary").toString();
+      theme.palette.textSecondary = colors.value("textSecondary").toString();
+      theme.palette.textTertiary = colors.value("textTertiary").toString();
+      theme.palette.textDisabled = colors.value("textDisabled").toString();
+      theme.palette.textOnAccent = colors.value("textOnAccent").toString();
+      theme.palette.textError = colors.value("textError").toString();
+      theme.palette.textSuccess = colors.value("textSuccess").toString();
+      theme.palette.textWarning = colors.value("textWarning").toString();
+
+      // Background colors
+      theme.palette.mainBackground = colors.value("mainBackground").toString();
+      theme.palette.mainHoverBackground = colors.value("mainHoverBackground").toString();
+      theme.palette.mainSelectedBackground = colors.value("mainSelectedBackground").toString();
+      theme.palette.secondaryBackground = colors.value("secondaryBackground").toString();
+      theme.palette.tertiaryBackground = colors.value("tertiaryBackground").toString();
+
+      // Button colors
+      theme.palette.buttonPrimary = colors.value("buttonPrimary").toString();
+      theme.palette.buttonPrimaryHover = colors.value("buttonPrimaryHover").toString();
+      theme.palette.buttonPrimaryPressed = colors.value("buttonPrimaryPressed").toString();
+      theme.palette.buttonPrimaryDisabled = colors.value("buttonPrimaryDisabled").toString();
+
+      theme.palette.buttonSecondary = colors.value("buttonSecondary").toString();
+      theme.palette.buttonSecondaryHover = colors.value("buttonSecondaryHover").toString();
+      theme.palette.buttonSecondaryPressed = colors.value("buttonSecondaryPressed").toString();
+      theme.palette.buttonSecondaryDisabled = colors.value("buttonSecondaryDisabled").toString();
+
+      theme.palette.buttonDestructive = colors.value("buttonDestructive").toString();
+      theme.palette.buttonDestructiveHover = colors.value("buttonDestructiveHover").toString();
+      theme.palette.buttonDestructivePressed = colors.value("buttonDestructivePressed").toString();
+
+      // Input colors
+      theme.palette.inputBackground = colors.value("inputBackground").toString();
+      theme.palette.inputBorder = colors.value("inputBorder").toString();
+      theme.palette.inputBorderFocus = colors.value("inputBorderFocus").toString();
+      theme.palette.inputBorderError = colors.value("inputBorderError").toString();
+      theme.palette.inputPlaceholder = colors.value("inputPlaceholder").toString();
+
+      // UI element colors
+      theme.palette.border = colors.value("border").toString();
+      theme.palette.borderSubtle = colors.value("borderSubtle").toString();
+      theme.palette.borderStrong = colors.value("borderStrong").toString();
+      theme.palette.separator = colors.value("separator").toString();
+      theme.palette.shadow = colors.value("shadow").toString();
+
+      // Status colors
+      theme.palette.statusBackground = colors.value("statusBackground").toString();
+      theme.palette.statusBorder = colors.value("statusBorder").toString();
+      theme.palette.statusHover = colors.value("statusHover").toString();
+
+      theme.palette.errorBackground = colors.value("errorBackground").toString();
+      theme.palette.errorBorder = colors.value("errorBorder").toString();
+      theme.palette.successBackground = colors.value("successBackground").toString();
+      theme.palette.successBorder = colors.value("successBorder").toString();
+      theme.palette.warningBackground = colors.value("warningBackground").toString();
+      theme.palette.warningBorder = colors.value("warningBorder").toString();
+
+      // Interactive colors
+      theme.palette.linkDefault = colors.value("linkDefault").toString();
+      theme.palette.linkHover = colors.value("linkHover").toString();
+      theme.palette.linkVisited = colors.value("linkVisited").toString();
+
+      // Special colors
+      theme.palette.focus = colors.value("focus").toString();
+      theme.palette.overlay = colors.value("overlay").toString();
+      theme.palette.tooltip = colors.value("tooltip").toString();
+      theme.palette.tooltipText = colors.value("tooltipText").toString();
 
       upsertTheme(theme);
 

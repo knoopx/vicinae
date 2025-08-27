@@ -119,6 +119,75 @@ struct ColorPalette {
   QColor red;
   QColor yellow;
   QColor cyan;
+
+  // Text colors
+  QColor textPrimary;
+  QColor textSecondary;
+  QColor textTertiary;
+  QColor textDisabled;
+  QColor textOnAccent;
+  QColor textError;
+  QColor textSuccess;
+  QColor textWarning;
+
+  // Background colors
+  QColor mainBackground;
+  QColor mainHoverBackground;
+  QColor mainSelectedBackground;
+  QColor secondaryBackground;
+  QColor tertiaryBackground;
+
+  // Button colors
+  QColor buttonPrimary;
+  QColor buttonPrimaryHover;
+  QColor buttonPrimaryPressed;
+  QColor buttonPrimaryDisabled;
+
+  QColor buttonSecondary;
+  QColor buttonSecondaryHover;
+  QColor buttonSecondaryPressed;
+  QColor buttonSecondaryDisabled;
+
+  QColor buttonDestructive;
+  QColor buttonDestructiveHover;
+  QColor buttonDestructivePressed;
+
+  // Input colors
+  QColor inputBackground;
+  QColor inputBorder;
+  QColor inputBorderFocus;
+  QColor inputBorderError;
+  QColor inputPlaceholder;
+
+  // UI element colors
+  QColor border;
+  QColor borderSubtle;
+  QColor borderStrong;
+  QColor separator;
+  QColor shadow;
+
+  // Status colors
+  QColor statusBackground;
+  QColor statusBorder;
+  QColor statusHover;
+
+  QColor errorBackground;
+  QColor errorBorder;
+  QColor successBackground;
+  QColor successBorder;
+  QColor warningBackground;
+  QColor warningBorder;
+
+  // Interactive colors
+  QColor linkDefault;
+  QColor linkHover;
+  QColor linkVisited;
+
+  // Special colors
+  QColor focus;
+  QColor overlay;
+  QColor tooltip;
+  QColor tooltipText;
 };
 
 struct ParsedThemeData {
@@ -164,6 +233,12 @@ struct ThemeInfo {
     QColor textTertiary;
     QColor textDisabled;
     QColor textOnAccent;
+    QColor textError;
+    QColor textSuccess;
+    QColor textWarning;
+
+    QColor textPrimary;
+    QColor textSecondary;
 
     QColor secondaryBackground;
     QColor tertiaryBackground;
