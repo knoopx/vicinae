@@ -1,16 +1,13 @@
 #pragma once
 #include <filesystem>
-#include <libqalculate/includes.h>
+#include <vector>
+#include <variant>
 #include <qapplication.h>
 #include <qcolor.h>
-#include <qfilesystemwatcher.h>
 #include <qjsondocument.h>
 #include <qjsonobject.h>
-#include <qlogging.h>
 #include <qobject.h>
 #include <QWidget>
-#include <qpalette.h>
-#include <qtmetamacros.h>
 
 enum SemanticColor {
   InvalidTint,
@@ -119,6 +116,75 @@ struct ColorPalette {
   QColor red;
   QColor yellow;
   QColor cyan;
+
+  // Text colors
+  QColor textPrimary;
+  QColor textSecondary;
+  QColor textTertiary;
+  QColor textDisabled;
+  QColor textOnAccent;
+  QColor textError;
+  QColor textSuccess;
+  QColor textWarning;
+
+  // Background colors
+  QColor mainBackground;
+  QColor mainHoverBackground;
+  QColor mainSelectedBackground;
+  QColor secondaryBackground;
+  QColor tertiaryBackground;
+
+  // Button colors
+  QColor buttonPrimary;
+  QColor buttonPrimaryHover;
+  QColor buttonPrimaryPressed;
+  QColor buttonPrimaryDisabled;
+
+  QColor buttonSecondary;
+  QColor buttonSecondaryHover;
+  QColor buttonSecondaryPressed;
+  QColor buttonSecondaryDisabled;
+
+  QColor buttonDestructive;
+  QColor buttonDestructiveHover;
+  QColor buttonDestructivePressed;
+
+  // Input colors
+  QColor inputBackground;
+  QColor inputBorder;
+  QColor inputBorderFocus;
+  QColor inputBorderError;
+  QColor inputPlaceholder;
+
+  // UI element colors
+  QColor border;
+  QColor borderSubtle;
+  QColor borderStrong;
+  QColor separator;
+  QColor shadow;
+
+  // Status colors
+  QColor statusBackground;
+  QColor statusBorder;
+  QColor statusHover;
+
+  QColor errorBackground;
+  QColor errorBorder;
+  QColor successBackground;
+  QColor successBorder;
+  QColor warningBackground;
+  QColor warningBorder;
+
+  // Interactive colors
+  QColor linkDefault;
+  QColor linkHover;
+  QColor linkVisited;
+
+  // Special colors
+  QColor focus;
+  QColor overlay;
+  QColor tooltip;
+  QColor tooltipText;
 };
 
 struct ParsedThemeData {
@@ -138,7 +204,7 @@ struct ThemeInfo {
   std::optional<std::filesystem::path> icon;
   std::optional<std::filesystem::path> path;
 
-  struct {
+  struct Colors {
     QColor text;
     QColor subtext;
     QColor border;
@@ -164,6 +230,12 @@ struct ThemeInfo {
     QColor textTertiary;
     QColor textDisabled;
     QColor textOnAccent;
+    QColor textError;
+    QColor textSuccess;
+    QColor textWarning;
+
+    QColor textPrimary;
+    QColor textSecondary;
 
     QColor secondaryBackground;
     QColor tertiaryBackground;
@@ -216,6 +288,25 @@ struct ThemeInfo {
   QColor resolveTint(SemanticColor tint) const;
 
   static ThemeInfo fromParsed(const ParsedThemeData &scheme);
+
+private:
+  // Helper functions for color generation
+  static void generateTextColors(Colors &colors, const QColor &baseText, bool isDark);
+  static void generateButtonColors(Colors &colors, const QColor &primaryColor, bool isDark);
+  static void generateSecondaryButtonColors(Colors &colors, const QColor &baseBackground, bool isDark);
+  static void generateDestructiveButtonColors(Colors &colors, const QColor &redColor, bool isDark);
+  static void generateBorderVariations(Colors &colors, const QColor &baseBorder, bool isDark);
+  static void generateStatusColors(Colors &colors, const QColor &red, const QColor &green,
+                                   const QColor &orange, const QColor &blue, bool isDark);
+  static void generateSemanticTextColors(Colors &colors, const QColor &green, const QColor &orange,
+                                         bool isDark);
+
+  // Helper functions for fromParsed
+  static void assignPaletteColors(Colors &colors, const ColorPalette &palette);
+  static void generateFallbackColors(Colors &colors, const ParsedThemeData &scheme, bool isDark);
+  static void generateInputColors(Colors &colors, const ParsedThemeData &scheme, bool isDark);
+  static void generateLinkColors(Colors &colors, const ParsedThemeData &scheme, bool isDark);
+  static void generateSpecialColors(Colors &colors, const ParsedThemeData &scheme, bool isDark);
 };
 
 class ThemeService : public QObject {

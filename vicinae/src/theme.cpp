@@ -6,9 +6,15 @@
 #include <QLinearGradient>
 #include <filesystem>
 #include <QStyleHints>
+#include <stack>
 #include <system_error>
 
 namespace fs = std::filesystem;
+
+// Helper function to get color with fallback - make inline for performance
+inline static QColor getColorWithFallback(const QColor &primary, const QColor &fallback) {
+  return primary.isValid() ? primary : fallback;
+}
 
 QColor ThemeInfo::resolveTint(SemanticColor tint) const {
   switch (tint) {
@@ -30,11 +36,11 @@ QColor ThemeInfo::resolveTint(SemanticColor tint) const {
   case SemanticColor::Cyan:
     return colors.cyan;
 
-  // Text colors
+  // Text colors with fallbacks
   case SemanticColor::TextPrimary:
-    return colors.text;
+    return getColorWithFallback(colors.textPrimary, colors.text);
   case SemanticColor::TextSecondary:
-    return colors.subtext;
+    return getColorWithFallback(colors.textSecondary, colors.subtext);
   case SemanticColor::TextTertiary:
     return colors.textTertiary;
   case SemanticColor::TextDisabled:
@@ -42,11 +48,11 @@ QColor ThemeInfo::resolveTint(SemanticColor tint) const {
   case SemanticColor::TextOnAccent:
     return colors.textOnAccent;
   case SemanticColor::TextError:
-    return colors.red;
+    return colors.textError;
   case SemanticColor::TextSuccess:
-    return colors.green;
+    return colors.textSuccess;
   case SemanticColor::TextWarning:
-    return colors.orange;
+    return colors.textWarning;
 
   // Backgrounds
   case SemanticColor::MainBackground:
@@ -60,7 +66,7 @@ QColor ThemeInfo::resolveTint(SemanticColor tint) const {
   case SemanticColor::TertiaryBackground:
     return colors.tertiaryBackground;
 
-  // Button states
+  // Button states - grouped by button type
   case SemanticColor::ButtonPrimary:
     return colors.buttonPrimary;
   case SemanticColor::ButtonPrimaryHover:
@@ -85,6 +91,17 @@ QColor ThemeInfo::resolveTint(SemanticColor tint) const {
     return colors.buttonDestructiveHover;
   case SemanticColor::ButtonDestructivePressed:
     return colors.buttonDestructivePressed;
+  case SemanticColor::ButtonDestructiveDisabled:
+    return colors.buttonDestructiveDisabled;
+
+  case SemanticColor::ButtonTertiary:
+    return colors.buttonTertiary;
+  case SemanticColor::ButtonTertiaryHover:
+    return colors.buttonTertiaryHover;
+  case SemanticColor::ButtonTertiaryPressed:
+    return colors.buttonTertiaryPressed;
+  case SemanticColor::ButtonTertiaryDisabled:
+    return colors.buttonTertiaryDisabled;
 
   // Input states
   case SemanticColor::InputBackground:
@@ -150,13 +167,21 @@ QColor ThemeInfo::resolveTint(SemanticColor tint) const {
     return colors.tooltipText;
 
   default:
-    break;
+    return {};
   }
-
-  return {};
 }
 
 QColor ThemeInfo::adjustColorHSL(const QColor &base, int hueShift, float satMult, float lightMult) {
+  // Input validation
+  if (!base.isValid()) { return {}; }
+
+  // Clamp multipliers to reasonable ranges to prevent overflow/underflow
+  satMult = qBound(0.0f, satMult, 10.0f);
+  lightMult = qBound(0.0f, lightMult, 10.0f);
+
+  // Normalize hue shift to avoid excessive wrapping
+  hueShift = hueShift % 360;
+
   auto hsl = base.toHsl();
 
   int newHue = (hsl.hue() + hueShift) % 360;
@@ -171,15 +196,14 @@ QColor ThemeInfo::adjustColorHSL(const QColor &base, int hueShift, float satMult
 ThemeInfo ThemeInfo::fromParsed(const ParsedThemeData &scheme) {
   ThemeInfo info;
 
-  // IMPORTANT: most of the semantic colors derived from the palette have been generated
-  // but are not used yet, only the main ones are.
-  // Eventually we will shit toward using more meaningful semantic colors for particular elements.
-
+  // Set basic theme information
   info.id = scheme.id;
   info.name = scheme.name;
   info.appearance = scheme.appearance;
   info.icon = scheme.icon;
   info.description = scheme.description;
+
+  // Copy basic palette colors
   info.colors.blue = scheme.palette.blue;
   info.colors.green = scheme.palette.green;
   info.colors.magenta = scheme.palette.magenta;
@@ -188,177 +212,41 @@ ThemeInfo ThemeInfo::fromParsed(const ParsedThemeData &scheme) {
   info.colors.red = scheme.palette.red;
   info.colors.yellow = scheme.palette.yellow;
   info.colors.cyan = scheme.palette.cyan;
-  info.colors.mainBackground = scheme.palette.background;
 
-  if (scheme.appearance == "dark") {
-    // EXISTING COLORS (your current code)
-    info.colors.mainBackground = scheme.palette.background;
-    info.colors.border = adjustColorHSL(info.colors.mainBackground, 0, 0.5f, 1.8f);
-    info.colors.mainSelectedBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.1f, 1.4f);
-    info.colors.mainHoveredBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.0f, 1.3f);
-    info.colors.statusBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 1.3f);
-    info.colors.statusBackgroundLighter = adjustColorHSL(info.colors.statusBackground, 0, 0.9f, 1.2f);
-    info.colors.statusBackgroundHover = adjustColorHSL(info.colors.statusBackground, 0, 1.0f, 1.1f);
-    info.colors.statusBackgroundBorder = adjustColorHSL(info.colors.statusBackground, 0, 0.6f, 1.5f);
-    info.colors.text = scheme.palette.foreground;
-    info.colors.subtext = adjustColorHSL(scheme.palette.foreground, 0, 0.8f, 0.7f);
+  // Assign all palette colors to ThemeInfo colors using helper function
+  assignPaletteColors(info.colors, scheme.palette);
 
-    // NEW TEXT COLORS
-    info.colors.textTertiary = adjustColorHSL(scheme.palette.foreground, 0, 0.6f, 0.5f);
-    // ^ Much dimmer for least important text
-    info.colors.textDisabled = adjustColorHSL(scheme.palette.foreground, 0, 0.3f, 0.4f);
-    // ^ Very desaturated and dim for disabled states
-    info.colors.textOnAccent = QColor("#FFFFFF");
-    // ^ Always white text on colored buttons in dark theme
+  // Set mainBackground from palette if not already set
+  if (!info.colors.mainBackground.isValid()) { info.colors.mainBackground = scheme.palette.background; }
 
-    // NEW BACKGROUND LEVELS
-    info.colors.secondaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.9f, 1.2f);
-    // ^ Cards, panels - slightly elevated
-    info.colors.tertiaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 0.8f);
-    // ^ Inset areas, wells - slightly darker
+  bool isDark = (scheme.appearance == "dark");
 
-    // PRIMARY BUTTONS (using blue as primary)
-    info.colors.buttonPrimary = scheme.palette.blue;
-    info.colors.buttonPrimaryHover = adjustColorHSL(scheme.palette.blue, 0, 1.1f, 1.2f);
-    // ^ Slightly more saturated and lighter
-    info.colors.buttonPrimaryPressed = adjustColorHSL(scheme.palette.blue, 0, 1.2f, 0.8f);
-    // ^ More saturated but darker for pressed state
-    info.colors.buttonPrimaryDisabled = adjustColorHSL(scheme.palette.blue, 0, 0.3f, 0.6f);
-    // ^ Very desaturated and dim
+  // Generate fallback colors for missing values
+  generateFallbackColors(info.colors, scheme, isDark);
 
-    // SECONDARY BUTTONS (neutral colored)
-    info.colors.buttonSecondary = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 1.6f);
-    info.colors.buttonSecondaryHover = adjustColorHSL(info.colors.buttonSecondary, 0, 1.0f, 1.2f);
-    info.colors.buttonSecondaryPressed = adjustColorHSL(info.colors.buttonSecondary, 0, 1.1f, 0.9f);
-    info.colors.buttonSecondaryDisabled = adjustColorHSL(info.colors.buttonSecondary, 0, 0.5f, 0.7f);
+  // Generate derived colors using helper functions
+  generateTextColors(info.colors, scheme.palette.foreground, isDark);
 
-    // DESTRUCTIVE BUTTONS (using red)
-    info.colors.buttonDestructive = scheme.palette.red;
-    info.colors.buttonDestructiveHover = adjustColorHSL(scheme.palette.red, 0, 1.1f, 1.2f);
-    info.colors.buttonDestructivePressed = adjustColorHSL(scheme.palette.red, 0, 1.2f, 0.8f);
+  // Generate button variants using helper functions
+  generateButtonColors(info.colors, scheme.palette.blue, isDark);
+  generateSecondaryButtonColors(info.colors, info.colors.mainBackground, isDark);
+  generateDestructiveButtonColors(info.colors, scheme.palette.red, isDark);
 
-    // INPUT STATES
-    info.colors.inputBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.7f, 1.1f);
-    // ^ Slightly lighter than main background
-    info.colors.inputBorder = adjustColorHSL(info.colors.mainBackground, 0, 0.6f, 1.5f);
-    info.colors.inputBorderFocus = scheme.palette.blue;
-    // ^ Use primary color for focus
-    info.colors.inputBorderError = scheme.palette.red;
-    info.colors.inputPlaceholder = adjustColorHSL(scheme.palette.foreground, 0, 0.5f, 0.6f);
+  // Generate input colors and borders
+  generateInputColors(info.colors, scheme, isDark);
 
-    // BORDER VARIATIONS
-    info.colors.borderSubtle = adjustColorHSL(info.colors.border, 0, 0.7f, 0.8f);
-    // ^ Even more subtle than regular border
-    info.colors.borderStrong = adjustColorHSL(info.colors.border, 0, 1.3f, 1.3f);
-    // ^ More prominent border
-    info.colors.separator = adjustColorHSL(info.colors.border, 0, 0.5f, 1.0f);
-    info.colors.shadow = QColor(0, 0, 0, 80);
-    // ^ Semi-transparent black for shadows
+  // Generate status colors using helper function
+  generateStatusColors(info.colors, scheme.palette.red, scheme.palette.green, scheme.palette.orange,
+                       scheme.palette.blue, isDark);
 
-    // STATUS BACKGROUNDS (using semantic colors with low opacity effect)
-    info.colors.errorBackground = adjustColorHSL(scheme.palette.red, 0, 0.6f, 1.8f);
-    info.colors.errorBorder = adjustColorHSL(scheme.palette.red, 0, 0.8f, 1.4f);
-    info.colors.successBackground = adjustColorHSL(scheme.palette.green, 0, 0.6f, 1.8f);
-    info.colors.successBorder = adjustColorHSL(scheme.palette.green, 0, 0.8f, 1.4f);
-    info.colors.warningBackground = adjustColorHSL(scheme.palette.orange, 0, 0.6f, 1.8f);
-    info.colors.warningBorder = adjustColorHSL(scheme.palette.orange, 0, 0.8f, 1.4f);
+  // Generate link colors
+  generateLinkColors(info.colors, scheme, isDark);
 
-    // LINKS
-    info.colors.linkDefault = adjustColorHSL(scheme.palette.blue, 0, 1.0f, 1.3f);
-    // ^ Slightly lighter blue for better readability
-    info.colors.linkHover = adjustColorHSL(scheme.palette.blue, 0, 1.2f, 1.5f);
-    info.colors.linkVisited = adjustColorHSL(scheme.palette.purple, 0, 1.0f, 1.2f);
+  // Generate special colors
+  generateSpecialColors(info.colors, scheme, isDark);
 
-    // SPECIAL ELEMENTS
-    info.colors.focus = scheme.palette.blue;
-    // ^ Use primary color for focus rings
-    info.colors.overlay = QColor(0, 0, 0, 120);
-    // ^ Semi-transparent black for modal overlays
-    info.colors.tooltip = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 2.0f);
-    info.colors.tooltipText = scheme.palette.foreground;
-
-  } else {
-    // LIGHT THEME - Similar logic but inverted lightness relationships
-
-    // EXISTING COLORS (your current code)
-    info.colors.mainBackground = scheme.palette.background;
-    info.colors.border = adjustColorHSL(info.colors.mainBackground, 0, 0.6f, 0.75f);
-    info.colors.mainSelectedBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.2f, 0.9f);
-    info.colors.mainHoveredBackground = adjustColorHSL(info.colors.mainBackground, 0, 1.1f, 0.95f);
-    info.colors.statusBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.9f, 0.92f);
-    info.colors.statusBackgroundLighter = adjustColorHSL(info.colors.statusBackground, 0, 0.8f, 0.96f);
-    info.colors.statusBackgroundHover = adjustColorHSL(info.colors.statusBackground, 0, 1.1f, 0.88f);
-    info.colors.statusBackgroundBorder = adjustColorHSL(info.colors.statusBackground, 0, 0.7f, 0.8f);
-    info.colors.text = scheme.palette.foreground;
-    info.colors.subtext = adjustColorHSL(scheme.palette.foreground, 0, 0.7f, 1.4f);
-
-    // NEW TEXT COLORS
-    info.colors.textTertiary = adjustColorHSL(scheme.palette.foreground, 0, 0.6f, 1.6f);
-    info.colors.textDisabled = adjustColorHSL(scheme.palette.foreground, 0, 0.4f, 1.8f);
-    info.colors.textOnAccent = QColor("#FFFFFF");
-    // ^ White text works on most colored buttons in light theme too
-
-    // NEW BACKGROUND LEVELS
-    info.colors.secondaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 0.95f);
-    // ^ Cards, panels - slightly darker
-    info.colors.tertiaryBackground = adjustColorHSL(info.colors.mainBackground, 0, 0.9f, 1.05f);
-    // ^ Inset areas - slightly lighter
-
-    // PRIMARY BUTTONS
-    info.colors.buttonPrimary = scheme.palette.blue;
-    info.colors.buttonPrimaryHover = adjustColorHSL(scheme.palette.blue, 0, 1.1f, 0.9f);
-    // ^ More saturated and darker
-    info.colors.buttonPrimaryPressed = adjustColorHSL(scheme.palette.blue, 0, 1.2f, 0.8f);
-    info.colors.buttonPrimaryDisabled = adjustColorHSL(scheme.palette.blue, 0, 0.3f, 1.5f);
-
-    // SECONDARY BUTTONS
-    info.colors.buttonSecondary = adjustColorHSL(info.colors.mainBackground, 0, 0.8f, 0.85f);
-    info.colors.buttonSecondaryHover = adjustColorHSL(info.colors.buttonSecondary, 0, 1.0f, 0.8f);
-    info.colors.buttonSecondaryPressed = adjustColorHSL(info.colors.buttonSecondary, 0, 1.1f, 0.75f);
-    info.colors.buttonSecondaryDisabled = adjustColorHSL(info.colors.buttonSecondary, 0, 0.5f, 1.2f);
-
-    // DESTRUCTIVE BUTTONS
-    info.colors.buttonDestructive = scheme.palette.red;
-    info.colors.buttonDestructiveHover = adjustColorHSL(scheme.palette.red, 0, 1.1f, 0.9f);
-    info.colors.buttonDestructivePressed = adjustColorHSL(scheme.palette.red, 0, 1.2f, 0.8f);
-
-    // INPUT STATES
-    info.colors.inputBackground = QColor("#FFFFFF");
-    // ^ Pure white for inputs in light theme
-    info.colors.inputBorder = adjustColorHSL(info.colors.mainBackground, 0, 0.5f, 0.7f);
-    info.colors.inputBorderFocus = scheme.palette.blue;
-    info.colors.inputBorderError = scheme.palette.red;
-    info.colors.inputPlaceholder = adjustColorHSL(scheme.palette.foreground, 0, 0.5f, 1.5f);
-
-    // BORDER VARIATIONS
-    info.colors.borderSubtle = adjustColorHSL(info.colors.border, 0, 0.7f, 1.2f);
-    info.colors.borderStrong = adjustColorHSL(info.colors.border, 0, 1.2f, 0.6f);
-    info.colors.separator = adjustColorHSL(info.colors.border, 0, 0.6f, 1.0f);
-    info.colors.shadow = QColor(0, 0, 0, 40);
-    // ^ Lighter shadow for light theme
-
-    // STATUS BACKGROUNDS
-    info.colors.errorBackground = adjustColorHSL(scheme.palette.red, 0, 0.3f, 1.8f);
-    info.colors.errorBorder = adjustColorHSL(scheme.palette.red, 0, 0.7f, 1.2f);
-    info.colors.successBackground = adjustColorHSL(scheme.palette.green, 0, 0.3f, 1.8f);
-    info.colors.successBorder = adjustColorHSL(scheme.palette.green, 0, 0.7f, 1.2f);
-    info.colors.warningBackground = adjustColorHSL(scheme.palette.orange, 0, 0.3f, 1.8f);
-    info.colors.warningBorder = adjustColorHSL(scheme.palette.orange, 0, 0.7f, 1.2f);
-
-    // LINKS
-    info.colors.linkDefault = adjustColorHSL(scheme.palette.blue, 0, 1.1f, 0.8f);
-    info.colors.linkHover = adjustColorHSL(scheme.palette.blue, 0, 1.3f, 0.7f);
-    info.colors.linkVisited = adjustColorHSL(scheme.palette.purple, 0, 1.1f, 0.8f);
-
-    // SPECIAL ELEMENTS
-    info.colors.focus = scheme.palette.blue;
-    info.colors.overlay = QColor(0, 0, 0, 80);
-    // ^ Slightly lighter overlay for light theme
-    info.colors.tooltip = adjustColorHSL(info.colors.mainBackground, 0, 0.7f, 0.2f);
-    // ^ Much darker tooltip in light theme
-    info.colors.tooltipText = QColor("#FFFFFF");
-    // ^ White text on dark tooltip
-  }
+  // Generate semantic text colors
+  generateSemanticTextColors(info.colors, scheme.palette.green, scheme.palette.orange, isDark);
 
   return info;
 }
@@ -406,10 +294,10 @@ void ThemeService::setTheme(const ThemeInfo &info) {
 			font-size: {SEARCH_FONT_SIZE}pt;
 		}
 
-		QScrollArea, 
+		QScrollArea,
 		QScrollArea > QWidget,
-		QScrollArea > QWidget > QWidget { 
-			background: transparent; 
+		QScrollArea > QWidget > QWidget {
+			background: transparent;
 		}
 		)");
 
@@ -551,17 +439,89 @@ void ThemeService::scanThemeDirectory(const std::filesystem::path &path) {
 
       auto colors = obj.value("palette").toObject();
 
-      // TODO: use default value for missing colors
-      theme.palette.background = colors.value("background").toString();
-      theme.palette.foreground = colors.value("foreground").toString();
-      theme.palette.blue = colors.value("blue").toString();
-      theme.palette.green = colors.value("green").toString();
-      theme.palette.magenta = colors.value("magenta").toString();
-      theme.palette.orange = colors.value("orange").toString();
-      theme.palette.purple = colors.value("purple").toString();
-      theme.palette.red = colors.value("red").toString();
-      theme.palette.yellow = colors.value("yellow").toString();
-      theme.palette.cyan = colors.value("cyan").toString();
+      // Helper function to extract color values
+      auto extractColor = [&](const QString &key) { return colors.value(key).toString(); };
+
+      // Basic palette colors
+      theme.palette.background = extractColor("background");
+      theme.palette.foreground = extractColor("foreground");
+      theme.palette.blue = extractColor("blue");
+      theme.palette.green = extractColor("green");
+      theme.palette.magenta = extractColor("magenta");
+      theme.palette.orange = extractColor("orange");
+      theme.palette.purple = extractColor("purple");
+      theme.palette.red = extractColor("red");
+      theme.palette.yellow = extractColor("yellow");
+      theme.palette.cyan = extractColor("cyan");
+
+      // Text colors
+      theme.palette.textPrimary = extractColor("textPrimary");
+      theme.palette.textSecondary = extractColor("textSecondary");
+      theme.palette.textTertiary = extractColor("textTertiary");
+      theme.palette.textDisabled = extractColor("textDisabled");
+      theme.palette.textOnAccent = extractColor("textOnAccent");
+      theme.palette.textError = extractColor("textError");
+      theme.palette.textSuccess = extractColor("textSuccess");
+      theme.palette.textWarning = extractColor("textWarning");
+
+      // Background colors
+      theme.palette.mainBackground = extractColor("mainBackground");
+      theme.palette.mainHoverBackground = extractColor("mainHoverBackground");
+      theme.palette.mainSelectedBackground = extractColor("mainSelectedBackground");
+      theme.palette.secondaryBackground = extractColor("secondaryBackground");
+      theme.palette.tertiaryBackground = extractColor("tertiaryBackground");
+
+      // Button colors - grouped by button type
+      theme.palette.buttonPrimary = extractColor("buttonPrimary");
+      theme.palette.buttonPrimaryHover = extractColor("buttonPrimaryHover");
+      theme.palette.buttonPrimaryPressed = extractColor("buttonPrimaryPressed");
+      theme.palette.buttonPrimaryDisabled = extractColor("buttonPrimaryDisabled");
+
+      theme.palette.buttonSecondary = extractColor("buttonSecondary");
+      theme.palette.buttonSecondaryHover = extractColor("buttonSecondaryHover");
+      theme.palette.buttonSecondaryPressed = extractColor("buttonSecondaryPressed");
+      theme.palette.buttonSecondaryDisabled = extractColor("buttonSecondaryDisabled");
+
+      theme.palette.buttonDestructive = extractColor("buttonDestructive");
+      theme.palette.buttonDestructiveHover = extractColor("buttonDestructiveHover");
+      theme.palette.buttonDestructivePressed = extractColor("buttonDestructivePressed");
+
+      // Input colors
+      theme.palette.inputBackground = extractColor("inputBackground");
+      theme.palette.inputBorder = extractColor("inputBorder");
+      theme.palette.inputBorderFocus = extractColor("inputBorderFocus");
+      theme.palette.inputBorderError = extractColor("inputBorderError");
+      theme.palette.inputPlaceholder = extractColor("inputPlaceholder");
+
+      // UI element colors
+      theme.palette.border = extractColor("border");
+      theme.palette.borderSubtle = extractColor("borderSubtle");
+      theme.palette.borderStrong = extractColor("borderStrong");
+      theme.palette.separator = extractColor("separator");
+      theme.palette.shadow = extractColor("shadow");
+
+      // Status colors
+      theme.palette.statusBackground = extractColor("statusBackground");
+      theme.palette.statusBorder = extractColor("statusBorder");
+      theme.palette.statusHover = extractColor("statusHover");
+
+      theme.palette.errorBackground = extractColor("errorBackground");
+      theme.palette.errorBorder = extractColor("errorBorder");
+      theme.palette.successBackground = extractColor("successBackground");
+      theme.palette.successBorder = extractColor("successBorder");
+      theme.palette.warningBackground = extractColor("warningBackground");
+      theme.palette.warningBorder = extractColor("warningBorder");
+
+      // Interactive colors
+      theme.palette.linkDefault = extractColor("linkDefault");
+      theme.palette.linkHover = extractColor("linkHover");
+      theme.palette.linkVisited = extractColor("linkVisited");
+
+      // Special colors
+      theme.palette.focus = extractColor("focus");
+      theme.palette.overlay = extractColor("overlay");
+      theme.palette.tooltip = extractColor("tooltip");
+      theme.palette.tooltipText = extractColor("tooltipText");
 
       upsertTheme(theme);
 
@@ -570,47 +530,43 @@ void ThemeService::scanThemeDirectory(const std::filesystem::path &path) {
   }
 }
 
+// Helper function to create a theme with common structure
+static ParsedThemeData createBuiltinTheme(const QString &name, const QString &description, const QString &id,
+                                          const QString &appearance, const QString &bg, const QString &fg,
+                                          const QString &blue, const QString &green, const QString &magenta,
+                                          const QString &orange, const QString &purple, const QString &red,
+                                          const QString &yellow, const QString &cyan) {
+  ParsedThemeData theme;
+  theme.name = name;
+  theme.description = description;
+  theme.id = id;
+  theme.appearance = appearance;
+  theme.palette = ColorPalette{.background = bg,
+                               .foreground = fg,
+                               .blue = blue,
+                               .green = green,
+                               .magenta = magenta,
+                               .orange = orange,
+                               .purple = purple,
+                               .red = red,
+                               .yellow = yellow,
+                               .cyan = cyan};
+  return theme;
+}
+
 std::vector<ParsedThemeData> ThemeService::loadColorSchemes() const {
   std::vector<ParsedThemeData> schemes;
-
   schemes.reserve(2);
 
-  ParsedThemeData lightTheme;
+  // Light theme
+  schemes.emplace_back(createBuiltinTheme("Vicinae Light", "Default Vicinae light palette", "vicinae-light",
+                                          "light", "#F4F2EE", "#1A1A1A", "#1F6FEB", "#3A9C61", "#A48ED6",
+                                          "#DA8A48", "#8374B7", "#C25C49", "#BFAE78", "#18A5B3"));
 
-  lightTheme.name = "Vicinae Light";
-  lightTheme.description = "Default Vicinae light palette";
-  lightTheme.id = "vicinae-light";
-  lightTheme.appearance = "light";
-  lightTheme.palette = ColorPalette{.background = "#F4F2EE",
-                                    .foreground = "#1A1A1A",
-                                    .blue = "#1F6FEB",
-                                    .green = "#3A9C61",
-                                    .magenta = "#A48ED6",
-                                    .orange = "#DA8A48",
-                                    .purple = "#8374B7",
-                                    .red = "#C25C49",
-                                    .yellow = "#BFAE78",
-                                    .cyan = "#18A5B3"};
-
-  schemes.emplace_back(lightTheme);
-
-  ParsedThemeData darkTheme;
-
-  darkTheme.name = "Vicinae Dark";
-  darkTheme.description = "Default Vicinae dark palette";
-  darkTheme.id = "vicinae-dark";
-  darkTheme.appearance = "dark";
-  darkTheme.palette = ColorPalette{.background = "#1A1A1A",
-                                   .foreground = "#E8E6E1",
-                                   .blue = "#2F6FED",
-                                   .green = "#3A9C61",
-                                   .magenta = "#BC8CFF",
-                                   .orange = "#F0883E",
-                                   .purple = "#7267B0",
-                                   .red = "#B9543B",
-                                   .yellow = "#BFAE78",
-                                   .cyan = "#18A5B3"};
-  schemes.emplace_back(darkTheme);
+  // Dark theme
+  schemes.emplace_back(createBuiltinTheme("Vicinae Dark", "Default Vicinae dark palette", "vicinae-dark",
+                                          "dark", "#1A1A1A", "#E8E6E1", "#2F6FED", "#3A9C61", "#BC8CFF",
+                                          "#F0883E", "#7267B0", "#B9543B", "#BFAE78", "#18A5B3"));
 
   return schemes;
 }
@@ -663,4 +619,234 @@ ThemeService::ThemeService() {
   registerBuiltinThemes();
   scanThemeDirectories();
   setTheme("vicinae-dark");
+}
+
+// Helper function implementations
+void ThemeInfo::generateTextColors(Colors &colors, const QColor &baseText, bool isDark) {
+  colors.textPrimary = baseText;
+  colors.textSecondary = adjustColorHSL(baseText, 0, 1.0f, isDark ? 0.7f : 1.3f);
+  colors.textTertiary = adjustColorHSL(baseText, 0, 1.0f, isDark ? 0.5f : 1.6f);
+  colors.textDisabled = adjustColorHSL(baseText, 0, 0.5f, isDark ? 0.4f : 1.8f);
+  colors.textOnAccent = isDark ? QColor("#ffffff") : QColor("#000000");
+}
+
+void ThemeInfo::generateButtonColors(Colors &colors, const QColor &primaryColor, bool isDark) {
+  colors.buttonPrimary = primaryColor;
+  colors.buttonPrimaryHover = adjustColorHSL(primaryColor, 0, 1.0f, isDark ? 1.2f : 0.9f);
+  colors.buttonPrimaryPressed = adjustColorHSL(primaryColor, 0, 1.0f, isDark ? 1.4f : 0.8f);
+  colors.buttonPrimaryDisabled = adjustColorHSL(primaryColor, 0, 0.3f, isDark ? 0.6f : 1.4f);
+}
+
+void ThemeInfo::generateSecondaryButtonColors(Colors &colors, const QColor &baseBackground, bool isDark) {
+  colors.buttonSecondary = adjustColorHSL(baseBackground, 0, 1.0f, isDark ? 1.3f : 0.9f);
+  colors.buttonSecondaryHover = adjustColorHSL(baseBackground, 0, 1.0f, isDark ? 1.5f : 0.8f);
+  colors.buttonSecondaryPressed = adjustColorHSL(baseBackground, 0, 1.0f, isDark ? 1.7f : 0.7f);
+  colors.buttonSecondaryDisabled = adjustColorHSL(baseBackground, 0, 0.3f, isDark ? 0.8f : 1.2f);
+}
+
+void ThemeInfo::generateDestructiveButtonColors(Colors &colors, const QColor &redColor, bool isDark) {
+  colors.buttonDestructive = redColor;
+  colors.buttonDestructiveHover = adjustColorHSL(redColor, 0, 1.0f, isDark ? 1.2f : 0.9f);
+  colors.buttonDestructivePressed = adjustColorHSL(redColor, 0, 1.0f, isDark ? 1.4f : 0.8f);
+}
+
+void ThemeInfo::generateBorderVariations(Colors &colors, const QColor &baseBorder, bool isDark) {
+  colors.borderSubtle = adjustColorHSL(baseBorder, 0, 0.5f, isDark ? 0.7f : 1.3f);
+  colors.borderStrong = adjustColorHSL(baseBorder, 0, 1.2f, isDark ? 1.4f : 0.8f);
+  colors.separator = adjustColorHSL(baseBorder, 0, 0.8f, isDark ? 0.8f : 1.2f);
+  colors.shadow = adjustColorHSL(baseBorder, 0, 0.3f, isDark ? 0.3f : 1.8f);
+}
+
+void ThemeInfo::generateStatusColors(Colors &colors, const QColor &red, const QColor &green,
+                                     const QColor &orange, const QColor &blue, bool isDark) {
+  // Error states
+  colors.errorBackground = adjustColorHSL(red, 0, 0.3f, isDark ? 0.2f : 1.9f);
+  colors.errorBorder = adjustColorHSL(red, 0, 0.8f, isDark ? 0.8f : 1.2f);
+
+  // Success states
+  colors.successBackground = adjustColorHSL(green, 0, 0.3f, isDark ? 0.2f : 1.9f);
+  colors.successBorder = adjustColorHSL(green, 0, 0.8f, isDark ? 0.8f : 1.2f);
+
+  // Warning states
+  colors.warningBackground = adjustColorHSL(orange, 0, 0.3f, isDark ? 0.2f : 1.9f);
+  colors.warningBorder = adjustColorHSL(orange, 0, 0.8f, isDark ? 0.8f : 1.2f);
+
+  // Status (using blue)
+  colors.statusBackground = adjustColorHSL(blue, 0, 0.3f, isDark ? 0.2f : 1.9f);
+  colors.statusBackgroundBorder = adjustColorHSL(blue, 0, 0.8f, isDark ? 0.8f : 1.2f);
+  colors.statusBackgroundHover = adjustColorHSL(blue, 0, 0.4f, isDark ? 0.3f : 1.8f);
+  colors.statusBackgroundLighter = adjustColorHSL(blue, 0, 0.2f, isDark ? 0.15f : 1.95f);
+}
+
+void ThemeInfo::generateSemanticTextColors(Colors &colors, const QColor &green, const QColor &orange,
+                                           bool isDark) {
+  colors.textSuccess = adjustColorHSL(green, 0, 1.0f, isDark ? 1.2f : 0.8f);
+  colors.textWarning = adjustColorHSL(orange, 0, 1.0f, isDark ? 1.2f : 0.8f);
+}
+
+// Helper functions for fromParsed to break down the massive function
+void ThemeInfo::assignPaletteColors(Colors &colors, const ColorPalette &palette) {
+  // Assign all palette colors to ThemeInfo colors if they're valid
+  if (palette.textPrimary.isValid()) colors.text = palette.textPrimary;
+  if (palette.textSecondary.isValid()) colors.subtext = palette.textSecondary;
+  if (palette.textTertiary.isValid()) colors.textTertiary = palette.textTertiary;
+  if (palette.textDisabled.isValid()) colors.textDisabled = palette.textDisabled;
+  if (palette.textOnAccent.isValid()) colors.textOnAccent = palette.textOnAccent;
+  if (palette.textError.isValid()) colors.textError = palette.textError;
+  if (palette.textSuccess.isValid()) colors.textSuccess = palette.textSuccess;
+  if (palette.textWarning.isValid()) colors.textWarning = palette.textWarning;
+
+  if (palette.mainBackground.isValid()) colors.mainBackground = palette.mainBackground;
+  if (palette.mainHoverBackground.isValid()) colors.mainHoveredBackground = palette.mainHoverBackground;
+  if (palette.mainSelectedBackground.isValid())
+    colors.mainSelectedBackground = palette.mainSelectedBackground;
+  if (palette.secondaryBackground.isValid()) colors.secondaryBackground = palette.secondaryBackground;
+  if (palette.tertiaryBackground.isValid()) colors.tertiaryBackground = palette.tertiaryBackground;
+
+  if (palette.buttonPrimary.isValid()) colors.buttonPrimary = palette.buttonPrimary;
+  if (palette.buttonPrimaryHover.isValid()) colors.buttonPrimaryHover = palette.buttonPrimaryHover;
+  if (palette.buttonPrimaryPressed.isValid()) colors.buttonPrimaryPressed = palette.buttonPrimaryPressed;
+  if (palette.buttonPrimaryDisabled.isValid()) colors.buttonPrimaryDisabled = palette.buttonPrimaryDisabled;
+
+  if (palette.buttonSecondary.isValid()) colors.buttonSecondary = palette.buttonSecondary;
+  if (palette.buttonSecondaryHover.isValid()) colors.buttonSecondaryHover = palette.buttonSecondaryHover;
+  if (palette.buttonSecondaryPressed.isValid())
+    colors.buttonSecondaryPressed = palette.buttonSecondaryPressed;
+  if (palette.buttonSecondaryDisabled.isValid())
+    colors.buttonSecondaryDisabled = palette.buttonSecondaryDisabled;
+
+  if (palette.buttonDestructive.isValid()) colors.buttonDestructive = palette.buttonDestructive;
+  if (palette.buttonDestructiveHover.isValid())
+    colors.buttonDestructiveHover = palette.buttonDestructiveHover;
+  if (palette.buttonDestructivePressed.isValid())
+    colors.buttonDestructivePressed = palette.buttonDestructivePressed;
+
+  if (palette.inputBackground.isValid()) colors.inputBackground = palette.inputBackground;
+  if (palette.inputBorder.isValid()) colors.inputBorder = palette.inputBorder;
+  if (palette.inputBorderFocus.isValid()) colors.inputBorderFocus = palette.inputBorderFocus;
+  if (palette.inputBorderError.isValid()) colors.inputBorderError = palette.inputBorderError;
+  if (palette.inputPlaceholder.isValid()) colors.inputPlaceholder = palette.inputPlaceholder;
+
+  if (palette.border.isValid()) colors.border = palette.border;
+  if (palette.borderSubtle.isValid()) colors.borderSubtle = palette.borderSubtle;
+  if (palette.borderStrong.isValid()) colors.borderStrong = palette.borderStrong;
+  if (palette.separator.isValid()) colors.separator = palette.separator;
+  if (palette.shadow.isValid()) colors.shadow = palette.shadow;
+
+  if (palette.statusBackground.isValid()) colors.statusBackground = palette.statusBackground;
+  if (palette.statusBorder.isValid()) colors.statusBackgroundBorder = palette.statusBorder;
+  if (palette.statusHover.isValid()) colors.statusBackgroundHover = palette.statusHover;
+
+  if (palette.errorBackground.isValid()) colors.errorBackground = palette.errorBackground;
+  if (palette.errorBorder.isValid()) colors.errorBorder = palette.errorBorder;
+  if (palette.successBackground.isValid()) colors.successBackground = palette.successBackground;
+  if (palette.successBorder.isValid()) colors.successBorder = palette.successBorder;
+  if (palette.warningBackground.isValid()) colors.warningBackground = palette.warningBackground;
+  if (palette.warningBorder.isValid()) colors.warningBorder = palette.warningBorder;
+
+  if (palette.linkDefault.isValid()) colors.linkDefault = palette.linkDefault;
+  if (palette.linkHover.isValid()) colors.linkHover = palette.linkHover;
+  if (palette.linkVisited.isValid()) colors.linkVisited = palette.linkVisited;
+
+  if (palette.focus.isValid()) colors.focus = palette.focus;
+  if (palette.overlay.isValid()) colors.overlay = palette.overlay;
+  if (palette.tooltip.isValid()) colors.tooltip = palette.tooltip;
+  if (palette.tooltipText.isValid()) colors.tooltipText = palette.tooltipText;
+}
+
+void ThemeInfo::generateFallbackColors(Colors &colors, const ParsedThemeData &scheme, bool isDark) {
+  // Base colors - only set if not provided in palette
+  if (!colors.mainBackground.isValid()) colors.mainBackground = scheme.palette.background;
+  if (!colors.border.isValid()) {
+    colors.border = adjustColorHSL(colors.mainBackground, 0, isDark ? 0.5f : 0.6f, isDark ? 1.8f : 0.75f);
+  }
+  if (!colors.mainSelectedBackground.isValid()) {
+    colors.mainSelectedBackground =
+        adjustColorHSL(colors.mainBackground, 0, isDark ? 1.1f : 1.2f, isDark ? 1.4f : 0.9f);
+  }
+  if (!colors.mainHoveredBackground.isValid()) {
+    colors.mainHoveredBackground =
+        adjustColorHSL(colors.mainBackground, 0, isDark ? 1.0f : 1.1f, isDark ? 1.3f : 0.95f);
+  }
+  if (!colors.statusBackground.isValid()) {
+    colors.statusBackground =
+        adjustColorHSL(colors.mainBackground, 0, isDark ? 0.8f : 0.9f, isDark ? 1.3f : 0.92f);
+  }
+  if (!colors.statusBackgroundLighter.isValid()) {
+    colors.statusBackgroundLighter =
+        adjustColorHSL(colors.statusBackground, 0, isDark ? 0.9f : 0.8f, isDark ? 1.2f : 0.96f);
+  }
+  if (!colors.statusBackgroundHover.isValid()) {
+    colors.statusBackgroundHover =
+        adjustColorHSL(colors.statusBackground, 0, isDark ? 1.0f : 1.1f, isDark ? 1.1f : 0.88f);
+  }
+  if (!colors.statusBackgroundBorder.isValid()) {
+    colors.statusBackgroundBorder =
+        adjustColorHSL(colors.statusBackground, 0, isDark ? 0.6f : 0.7f, isDark ? 0.6f : 0.8f);
+  }
+  if (!colors.text.isValid()) colors.text = scheme.palette.foreground;
+  if (!colors.subtext.isValid()) {
+    colors.subtext = adjustColorHSL(scheme.palette.foreground, 0, isDark ? 0.8f : 0.7f, isDark ? 0.7f : 1.4f);
+  }
+
+  // Background levels - only generate if not provided
+  if (!colors.secondaryBackground.isValid()) {
+    colors.secondaryBackground =
+        adjustColorHSL(colors.mainBackground, 0, isDark ? 0.9f : 0.8f, isDark ? 1.2f : 0.95f);
+  }
+  if (!colors.tertiaryBackground.isValid()) {
+    colors.tertiaryBackground =
+        adjustColorHSL(colors.mainBackground, 0, isDark ? 0.8f : 0.9f, isDark ? 0.8f : 1.05f);
+  }
+}
+
+void ThemeInfo::generateInputColors(Colors &colors, const ParsedThemeData &scheme, bool isDark) {
+  // Input and border variations - only generate if not provided
+  if (!colors.inputBackground.isValid()) {
+    if (isDark) {
+      colors.inputBackground = adjustColorHSL(colors.mainBackground, 0, 0.7f, 1.1f);
+    } else {
+      colors.inputBackground = QColor("#FFFFFF");
+    }
+  }
+  if (!colors.inputBorder.isValid()) {
+    colors.inputBorder = adjustColorHSL(colors.mainBackground, 0, isDark ? 0.6f : 0.5f, isDark ? 1.5f : 0.7f);
+  }
+  if (!colors.inputBorderFocus.isValid()) colors.inputBorderFocus = scheme.palette.blue;
+  if (!colors.inputBorderError.isValid()) colors.inputBorderError = scheme.palette.red;
+  if (!colors.inputPlaceholder.isValid()) {
+    colors.inputPlaceholder = adjustColorHSL(scheme.palette.foreground, 0, 0.5f, isDark ? 0.6f : 1.5f);
+  }
+
+  // Generate border variations and shadow
+  if (!colors.borderSubtle.isValid() || !colors.borderStrong.isValid() || !colors.separator.isValid() ||
+      !colors.shadow.isValid()) {
+    generateBorderVariations(colors, colors.border, isDark);
+  }
+  if (!colors.shadow.isValid()) { colors.shadow = QColor(0, 0, 0, isDark ? 80 : 40); }
+}
+
+void ThemeInfo::generateLinkColors(Colors &colors, const ParsedThemeData &scheme, bool isDark) {
+  // Links - only generate if not provided
+  if (!colors.linkDefault.isValid()) {
+    colors.linkDefault = adjustColorHSL(scheme.palette.blue, 0, isDark ? 1.0f : 1.1f, isDark ? 1.3f : 0.8f);
+  }
+  if (!colors.linkHover.isValid()) {
+    colors.linkHover = adjustColorHSL(scheme.palette.blue, 0, isDark ? 1.2f : 1.3f, isDark ? 1.5f : 0.7f);
+  }
+  if (!colors.linkVisited.isValid()) {
+    colors.linkVisited = adjustColorHSL(scheme.palette.purple, 0, isDark ? 1.0f : 1.1f, isDark ? 1.2f : 0.8f);
+  }
+}
+
+void ThemeInfo::generateSpecialColors(Colors &colors, const ParsedThemeData &scheme, bool isDark) {
+  // Special elements - only generate if not provided
+  if (!colors.focus.isValid()) colors.focus = scheme.palette.blue;
+  if (!colors.overlay.isValid()) { colors.overlay = QColor(0, 0, 0, isDark ? 120 : 80); }
+  if (!colors.tooltip.isValid()) {
+    colors.tooltip = adjustColorHSL(colors.mainBackground, 0, isDark ? 0.8f : 0.7f, isDark ? 2.0f : 0.2f);
+  }
+  if (!colors.tooltipText.isValid()) {
+    colors.tooltipText = isDark ? scheme.palette.foreground : QColor("#FFFFFF");
+  }
 }
