@@ -57,15 +57,15 @@ QColor ThemeInfo::resolveTint(SemanticColor tint) const {
 
   // Backgrounds
   case SemanticColor::MainBackground:
-    return colors.base00;
-  case SemanticColor::MainHoverBackground:
     return colors.base01;
+  case SemanticColor::MainHoverBackground:
+    return colors.base00;
   case SemanticColor::MainSelectedBackground:
     return colors.base02;
   case SemanticColor::SecondaryBackground:
-    return colors.base01;
+    return colors.base03;
   case SemanticColor::TertiaryBackground:
-    return colors.base02;
+    return colors.base04;
 
   // Button states - grouped by button type
   case SemanticColor::ButtonPrimary:
@@ -95,7 +95,7 @@ QColor ThemeInfo::resolveTint(SemanticColor tint) const {
 
   // Input states
   case SemanticColor::InputBackground:
-    return colors.base00;
+    return colors.base01;
   case SemanticColor::InputBorder:
     return colors.base03;
   case SemanticColor::InputBorderFocus:
@@ -172,7 +172,7 @@ ThemeInfo ThemeInfo::fromParsed(const ParsedThemeData &scheme) {
   info.description = scheme.description;
 
   // Copy all base16 colors
-  info.colors.base00 = scheme.palette.base00;
+  info.colors.base01 = scheme.palette.base01;
   info.colors.base01 = scheme.palette.base01;
   info.colors.base02 = scheme.palette.base02;
   info.colors.base03 = scheme.palette.base03;
@@ -399,7 +399,7 @@ std::vector<ParsedThemeData> ThemeService::loadColorSchemes() const {
   lightTheme.description = "Default Vicinae light palette";
   lightTheme.id = "vicinae-light";
   lightTheme.appearance = "light";
-  lightTheme.palette = ColorPalette{.base00 = "#F4F2EE",
+  lightTheme.palette = ColorPalette{.base01 = "#F4F2EE",
                                     .base05 = "#1A1A1A",
                                     .base08 = "#C25C49",
                                     .base09 = "#DA8A48",
@@ -418,7 +418,7 @@ std::vector<ParsedThemeData> ThemeService::loadColorSchemes() const {
   darkTheme.description = "Default Vicinae dark palette";
   darkTheme.id = "vicinae-dark";
   darkTheme.appearance = "dark";
-  darkTheme.palette = ColorPalette{.base00 = "#1A1A1A",
+  darkTheme.palette = ColorPalette{.base01 = "#1A1A1A",
                                    .base05 = "#E8E6E1",
                                    .base08 = "#B9543B",
                                    .base09 = "#F0883E",
@@ -516,7 +516,7 @@ void ThemeService::extractColorPalette(ColorPalette &palette, const QJsonObject 
   auto extractColor = [&](const QString &key) { return colors.value(key).toString(); };
 
   // Extract all base16 colors
-  palette.base00 = extractColor("base00");
+  palette.base01 = extractColor("base01");
   palette.base01 = extractColor("base01");
   palette.base02 = extractColor("base02");
   palette.base03 = extractColor("base03");

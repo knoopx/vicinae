@@ -12,7 +12,7 @@ void SettingsWindow::paintEvent(QPaintEvent *event) {
   auto &config = ServiceRegistry::instance()->config()->value();
   auto &theme = ThemeService::instance().theme();
   int borderWidth = 1;
-  QColor finalBgColor = theme.colors.base00;
+  QColor finalBgColor = theme.colors.base01;
   QPainter painter(this);
 
   finalBgColor.setAlphaF(config.window.opacity);

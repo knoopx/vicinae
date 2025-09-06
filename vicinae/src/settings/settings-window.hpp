@@ -61,9 +61,9 @@ class SettingsNavPane : public QWidget {
     auto &theme = ThemeService::instance().theme();
 
     if (m_selected) { return theme.colors.base02; }
-    if (m_hovered) { return theme.colors.base01; }
+    if (m_hovered) { return theme.colors.base00; }
 
-    return theme.colors.base00;
+    return theme.colors.base01;
   }
 
   void paintEvent(QPaintEvent *event) override {
